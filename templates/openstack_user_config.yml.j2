@@ -1,0 +1,19 @@
+---
+global_overrides:
+    internal_lb_vip_address: "{{ ansible_ssh_host }}"
+    external_lb_vip_address: "{{ ansible_ssh_host }}"
+    tunnel_bridge: "br-vxlan"
+    management_bridge: "br-mgmt"
+    provider_networks:
+        - network:
+            container_bridge: "br-mgmt"
+            container_type: "veth"
+            container_interface: "eth1"
+            ip_from_q: "container"
+            type: "raw"
+            group_binds:
+                - all_containers
+                - hosts
+            is_container_address: true
+            is_ssh_address: true
+

@@ -1,0 +1,9 @@
+# Repo pointer
+openstack_repo_url: "http://{{ hostvars[keystone_hostname]['ansible_ssh_host'] }}:{% raw %}{{ repo_server_port }}{% endraw %}"
+
+# Keystone config
+keystone_service_uri: "{% raw %}{{ keystone_service_proto }}{% endraw %}://{{ hostvars[keystone_hostname]['ansible_ssh_host'] }}"
+keystone_service_internaluri: "{% raw %}{{ keystone_service_proto }}{% endraw %}://{{ hostvars[keystone_hostname]['ansible_ssh_host'] }}:{% raw %}{{ keystone_service_port }}{% endraw %}"
+keystone_service_internaluri_v3: "{% raw %}{{ keystone_service_proto }}{% endraw %}://{{ hostvars[keystone_hostname]['ansible_ssh_host'] }}:{% raw %}{{ keystone_service_port }}{% endraw %}"
+keystone_service_adminuri_v3: "{% raw %}{{ keystone_service_proto }}{% endraw %}://{{ hostvars[keystone_hostname]['ansible_ssh_host'] }}:{% raw %}{{ keystone_admin_port }}{% endraw %}"
+
