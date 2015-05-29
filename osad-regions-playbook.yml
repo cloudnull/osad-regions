@@ -28,6 +28,7 @@
         - setup-identity
         - setup-hosts
         - setup-regions
+        - setup
     - name: Load inventory
       add_host:
         hostname: "{{ item.info.name.split('-')[-1] }}"
@@ -39,6 +40,7 @@
         - setup-identity
         - setup-hosts
         - setup-regions
+        - setup
     - name: Wait for ssh
       wait_for:
         port: 22
@@ -46,6 +48,11 @@
         search_regex: OpenSSH
         delay: 10
       with_items: nova_hosts.results
+      tags:
+        - setup-identity
+        - setup-hosts
+        - setup-regions
+        - setup
   vars:
     login_username: "{{ os_username }}"
     login_password: "{{ os_password }}"
@@ -140,9 +147,30 @@
         - "rabbitmq-install.yml"
         - "utility-install.yml"
         - "rsyslog-install.yml"
-        - "setup-openstack.yml"
       tags:
         - setup-identity
+    - name: Run keystone playbook
+      command: openstack-ansible os-keystone-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-identity
+        - run-keystone
+    - name: Run horizon playbook
+      command: openstack-ansible os-horizon-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-identity
+        - run-horizon
   vars:
     login_username: "{{ os_username }}"
     region_name: "{{ os_region_name }}"
@@ -171,6 +199,12 @@
         dest: /etc/openstack_deploy/user_region_one.yml
       when: inventory_hostname == "RegionOne"
       delegate_to: "RegionOne"
+      tags:
+        - setup-regions
+    - name: Drop regional swift config file
+      template:
+        src: templates/openstack_user_config_swift.yml.j2
+        dest: /etc/openstack_deploy/conf.d/swift.yml
       tags:
         - setup-regions
     - name: Drop user region two config file
@@ -223,6 +257,71 @@
         - "rabbitmq-install.yml"
         - "utility-install.yml"
         - "rsyslog-install.yml"
-        - "setup-openstack.yml"
       tags:
         - setup-regions
+    - name: Run Swift playbook
+      command: openstack-ansible os-swift-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-regions
+        - run-swift
+    - name: Run glance playbook
+      command: openstack-ansible os-glance-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-regions
+        - run-glance
+    - name: Run cinder playbook
+      command: openstack-ansible os-cinder-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-regions
+        - run-cinder
+    - name: Run nova playbook
+      command: openstack-ansible os-nova-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-regions
+        - run-nova
+    - name: Run neutron playbook
+      command: openstack-ansible os-neutron-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-regions
+        - run-neutron
+    - name: Run heat playbook
+      command: openstack-ansible os-heat-install.yml
+      args:
+        chdir: /opt/os-ansible-deployment/playbooks
+      register: playbook_run
+      until: playbook_run|success
+      retries: 2
+      delay: 1
+      tags:
+        - setup-regions
+        - run-heat
