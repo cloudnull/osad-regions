@@ -1,17 +1,30 @@
 ---
+os-infra_hosts:
+    {{ inventory_hostname }}:
+        ip: 172.29.236.100
+        affinity:
+            nova_console_container: 0
+            nova_scheduler_container: 0
+            nova_conductor_container: 0
+            nova_cert_container: 0
+            nova_api_os_compute_container: 0
+            nova_api_metadata_container: 0
+            horizon_container: 1
+            heat_engine_container: 0
+            heat_apis_container: 0
+            glance_container: 0
 shared-infra_hosts:
-    aio1:
+    {{ inventory_hostname }}:
         ip: 172.29.236.100
 repo-infra_hosts:
-    aio1:
+    {{ inventory_hostname }}:
         ip: 172.29.236.100
 identity_hosts:
-    aio1:
+    {{ inventory_hostname }}:
         ip: 172.29.236.100
 log_hosts:
-    aio1:
+    {{ inventory_hostname }}:
         ip: 172.29.236.100
 haproxy_hosts:
-    aio1:
+    {{ inventory_hostname }}:
         ip: 172.29.236.100
-

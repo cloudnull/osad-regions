@@ -39,6 +39,13 @@
         - setup-identity
         - setup-hosts
         - setup-regions
+    - name: Wait for ssh
+      wait_for:
+        port: 22
+        host: "{{ item.info.accessIPv4 }}"
+        search_regex: OpenSSH
+        delay: 10
+      with_items: nova_hosts.results
   vars:
     login_username: "{{ os_username }}"
     login_password: "{{ os_password }}"
@@ -86,12 +93,6 @@
         creates: /etc/openstack_deploy/openstack_user_config.yml
       tags:
         - setup-hosts
-    - name: Replace user config
-      template:
-        src: templates/openstack_user_config.yml.j2
-        dest: /etc/openstack_deploy/openstack_user_config.yml
-      tags:
-        - setup-hosts
   vars:
     git_repo: "{{ osad_repo | default('https://github.com/stackforge/os-ansible-deployment') }}"
 
@@ -107,10 +108,22 @@
         state: absent
       tags:
         - setup-identity
+    - name: Replace user config
+      template:
+        src: templates/openstack_user_config_identity.yml.j2
+        dest: /etc/openstack_deploy/openstack_user_config.yml
+      tags:
+        - setup-identity
     - name: Drop user config file
       template:
         src: templates/identity.yml.j2
         dest: /etc/openstack_deploy/conf.d/identity.yml
+      tags:
+        - setup-identity
+    - name: Drop user keystone config file
+      template:
+        src: templates/user_region_identity.yml.j2
+        dest: /etc/openstack_deploy/user_region_identity.yml
       tags:
         - setup-identity
     - name: Run playbooks identity
@@ -124,6 +137,7 @@
         - "repo-build.yml"
         - "memcached-install.yml"
         - "galera-install.yml"
+        - "rabbitmq-install.yml"
         - "utility-install.yml"
         - "rsyslog-install.yml"
         - "setup-openstack.yml"
@@ -139,6 +153,12 @@
   gather_facts: false
   user: root
   tasks:
+    - name: Replace user config
+      template:
+        src: templates/openstack_user_config_region.yml.j2
+        dest: /etc/openstack_deploy/openstack_user_config.yml
+      tags:
+        - setup-regions
     - name: Drop user keystone config file
       template:
         src: templates/user_identity.yml.j2
@@ -149,6 +169,7 @@
       template:
         src: templates/user_region_one.yml.j2
         dest: /etc/openstack_deploy/user_region_one.yml
+      when: inventory_hostname == "RegionOne"
       delegate_to: "RegionOne"
       tags:
         - setup-regions
@@ -156,6 +177,7 @@
       template:
         src: templates/user_region_two.yml.j2
         dest: /etc/openstack_deploy/user_region_two.yml
+      when: inventory_hostname == "RegionTwo"
       delegate_to: "RegionTwo"
       tags:
         - setup-regions
@@ -163,6 +185,30 @@
       template:
         src: templates/region.yml.j2
         dest: /etc/openstack_deploy/conf.d/region.yml
+      tags:
+        - setup-regions
+    - name: Get OS creds
+      command: >
+        grep -e '^cinder' \
+             -e '^glance' \
+             -e '^heat' \
+             -e '^keystone' \
+             -e '^neutron' \
+             -e '^nova' \
+             -e '^swift' \
+             /etc/openstack_deploy/user_secrets.yml
+      register: keystone_secrets
+      delegate_to: Identity
+      no_log: True
+      tags:
+        - setup-regions
+    - name: Set keystone credentials
+      lineinfile:
+        dest: /etc/openstack_deploy/user_secrets.yml
+        regexp: '^{{ item.split()[1] }}'
+        line: "{{ item }}"
+      with_items: keystone_secrets.stdout_lines
+      no_log: True
       tags:
         - setup-regions
     - name: Run regional playbooks

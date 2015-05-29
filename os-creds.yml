@@ -1,6 +1,16 @@
+# Public Cloud login name
 os_username: username
-os_password: secrete
-os_tenant_name: username
-os_keyname: keyname
-os_region_name: RegionOne
 
+# Public Cloud login Password
+os_password: secrete
+
+# Public Cloud tenant ID. This is the number found in the top right corner
+# of the Rackspace Public Cloud control panel.
+os_tenant_name: username
+
+# You must create an SSH keypair and provide the name of it.
+os_keyname: keyname
+
+# Public Cloud region you would like to build your cluster in.
+# This is case sensitive and should be capitalized.
+os_region_name: IAD
