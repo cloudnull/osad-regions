@@ -1,3 +1,5 @@
+
+
 - name: Create an OSAD multi region cloud in OS Clouds
   hosts: localhost
   connection: local
@@ -22,13 +24,21 @@
         - RegionOne
         - RegionTwo
       register: nova_hosts
+      tags:
+        - setup-identity
+        - setup-hosts
+        - setup-regions
     - name: Load inventory
       add_host:
-        hostname: "{{ item.info.name }}"
+        hostname: "{{ item.info.name.split('-')[-1] }}"
         ansible_ssh_host: "{{ item.info.accessIPv4 }}"
         ansible_ssh_port: "22"
         groups: os_nodes
       with_items: nova_hosts.results
+      tags:
+        - setup-identity
+        - setup-hosts
+        - setup-regions
   vars:
     login_username: "{{ os_username }}"
     login_password: "{{ os_password }}"
@@ -36,7 +46,7 @@
     region_name: "{{ os_region_name }}"
     auth_url: "{{ os_auth_url | default('https://identity.api.rackspacecloud.com/v2.0/') }}"
 
-# Basic host setup
+
 - name: Setup hosts
   hosts: os_nodes
   gather_facts: false
@@ -52,63 +62,80 @@
         - tmux
         - git
         - curl
+      tags:
+        - setup-hosts
     - name: Clone OSAD into place
       git:
         repo: "{{ git_repo }}"
         dest: /opt/os-ansible-deployment
         update: yes
         force: yes
+      tags:
+        - setup-hosts
     - name: Bootstrap ansible Ansible
       command: scripts/bootstrap-ansible.sh
       args:
         chdir: /opt/os-ansible-deployment
         creates: /usr/local/bin/openstack-ansible
+      tags:
+        - setup-hosts
     - name: Bootstrap ansible AIO
       command: scripts/bootstrap-aio.sh
       args:
         chdir: /opt/os-ansible-deployment
         creates: /etc/openstack_deploy/openstack_user_config.yml
-    - name: remove bootstrapped openstack_user_config
-      file:
-        path: /etc/openstack_deploy/conf.d/swift.yml
-        state: absent
+      tags:
+        - setup-hosts
     - name: Replace user config
       template:
         src: templates/openstack_user_config.yml.j2
         dest: /etc/openstack_deploy/openstack_user_config.yml
+      tags:
+        - setup-hosts
   vars:
     git_repo: "{{ osad_repo | default('https://github.com/stackforge/os-ansible-deployment') }}"
 
 
 - name: Setup Identity Hosts
-  hosts: "{{ os_username }}-{{ os_region_name }}-Identity"
+  hosts: "Identity"
   gather_facts: false
   user: root
   tasks:
+    - name: remove bootstrapped openstack_user_config
+      file:
+        path: /etc/openstack_deploy/conf.d/swift.yml
+        state: absent
+      tags:
+        - setup-identity
     - name: Drop user config file
       template:
         src: templates/identity.yml.j2
         dest: /etc/openstack_deploy/conf.d/identity.yml
+      tags:
+        - setup-identity
     - name: Run playbooks identity
       command: "openstack-ansible {{ item }}"
       args:
         chdir: /opt/os-ansible-deployment/playbooks
       with_items:
-        - "haproxy-install.yml"
         - "setup-hosts.yml"
+        - "haproxy-install.yml"
         - "repo-server.yml"
         - "repo-build.yml"
         - "memcached-install.yml"
+        - "galera-install.yml"
         - "utility-install.yml"
         - "rsyslog-install.yml"
         - "setup-openstack.yml"
+      tags:
+        - setup-identity
   vars:
     login_username: "{{ os_username }}"
     region_name: "{{ os_region_name }}"
 
 
 - name: Setup Regional Hosts
-  hosts: os_nodes:!"{{ os_username }}-{{ os_region_name }}-Identity"
+  hosts: os_nodes:!Identity
   gather_facts: false
   user: root
   tasks:
@@ -116,32 +143,40 @@
       template:
         src: templates/user_identity.yml.j2
         dest: /etc/openstack_deploy/user_identity.yml
+      tags:
+        - setup-regions
     - name: Drop user region one config file
       template:
         src: templates/user_region_one.yml.j2
         dest: /etc/openstack_deploy/user_region_one.yml
-      delegate_to: "{{ os_username }}-{{ os_region_name }}-RegionOne"
+      delegate_to: "RegionOne"
+      tags:
+        - setup-regions
     - name: Drop user region two config file
       template:
         src: templates/user_region_two.yml.j2
         dest: /etc/openstack_deploy/user_region_two.yml
-      delegate_to: "{{ os_username }}-{{ os_region_name }}-RegionTwo"
+      delegate_to: "RegionTwo"
+      tags:
+        - setup-regions
     - name: Drop user config file
       template:
         src: templates/region.yml.j2
         dest: /etc/openstack_deploy/conf.d/region.yml
+      tags:
+        - setup-regions
     - name: Run regional playbooks
       command: "openstack-ansible {{ item }}"
       args:
         chdir: /opt/os-ansible-deployment/playbooks
       with_items:
-        - "haproxy-install.yml"
         - "setup-hosts.yml"
+        - "haproxy-install.yml"
         - "memcached-install.yml"
         - "galera-install.yml"
         - "rabbitmq-install.yml"
         - "utility-install.yml"
         - "rsyslog-install.yml"
         - "setup-openstack.yml"
-  vars:
-    keystone_hostname: "{{ os_username }}-{{ os_region_name }}-Identity"
+      tags:
+        - setup-regions

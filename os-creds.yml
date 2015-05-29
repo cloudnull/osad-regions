@@ -1,0 +1,6 @@
+os_username: username
+os_password: secrete
+os_tenant_name: username
+os_keyname: keyname
+os_region_name: RegionOne
+

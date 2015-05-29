@@ -1,4 +1,10 @@
 ---
+cidr_networks:
+    container: 172.29.236.0/22
+
+used_ips:
+    - "172.29.236.1,172.29.236.50"
+
 global_overrides:
     internal_lb_vip_address: "{{ ansible_ssh_host }}"
     external_lb_vip_address: "{{ ansible_ssh_host }}"
