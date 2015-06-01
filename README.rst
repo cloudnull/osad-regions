@@ -17,4 +17,4 @@ Example command
 
 .. code-block:: bash
 
-  ansible-playbook -i "localhost," -e @os-creds.yml osad-regions-playbook.yml
+  ansible-playbook -i inventory -e @os-creds.yml osad-regions-playbook.yml
