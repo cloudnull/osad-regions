@@ -84,6 +84,7 @@
         dest: /opt/os-ansible-deployment
         update: yes
         force: yes
+      failed_when: false
       tags:
         - setup-hosts
     - name: Bootstrap ansible Ansible
@@ -115,24 +116,28 @@
         state: absent
       tags:
         - setup-identity
+        - identity-config
     - name: Replace user config
       template:
         src: templates/openstack_user_config_identity.yml.j2
         dest: /etc/openstack_deploy/openstack_user_config.yml
       tags:
         - setup-identity
+        - identity-config
     - name: Drop user config file
       template:
         src: templates/identity.yml.j2
         dest: /etc/openstack_deploy/conf.d/identity.yml
       tags:
         - setup-identity
+        - identity-config
     - name: Drop user keystone config file
       template:
         src: templates/user_region_identity.yml.j2
         dest: /etc/openstack_deploy/user_region_identity.yml
       tags:
         - setup-identity
+        - identity-config
     - name: Run playbooks identity
       command: "openstack-ansible {{ item }}"
       args:
@@ -187,12 +192,14 @@
         dest: /etc/openstack_deploy/openstack_user_config.yml
       tags:
         - setup-regions
+        - regional-config
     - name: Drop user keystone config file
       template:
         src: templates/user_identity.yml.j2
         dest: /etc/openstack_deploy/user_identity.yml
       tags:
         - setup-regions
+        - regional-config
     - name: Drop user region one config file
       template:
         src: templates/user_region_one.yml.j2
@@ -201,12 +208,14 @@
       delegate_to: "RegionOne"
       tags:
         - setup-regions
+        - regional-config
     - name: Drop regional swift config file
       template:
         src: templates/openstack_user_config_swift.yml.j2
         dest: /etc/openstack_deploy/conf.d/swift.yml
       tags:
         - setup-regions
+        - regional-config
     - name: Drop user region two config file
       template:
         src: templates/user_region_two.yml.j2
@@ -215,12 +224,14 @@
       delegate_to: "RegionTwo"
       tags:
         - setup-regions
+        - regional-config
     - name: Drop user config file
       template:
         src: templates/region.yml.j2
         dest: /etc/openstack_deploy/conf.d/region.yml
       tags:
         - setup-regions
+        - regional-config
     - name: Get OS creds
       command: >
         grep -e '^cinder' \
@@ -236,6 +247,7 @@
       no_log: True
       tags:
         - setup-regions
+        - regional-config
     - name: Set keystone credentials
       lineinfile:
         dest: /etc/openstack_deploy/user_secrets.yml
@@ -245,6 +257,7 @@
       no_log: True
       tags:
         - setup-regions
+        - regional-config
     - name: Run regional playbooks
       command: "openstack-ansible {{ item }}"
       args:
